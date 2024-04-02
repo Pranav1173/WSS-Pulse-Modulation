@@ -12,10 +12,10 @@ int pulseCount = 0;
 float duty, freq, period;
 int consecutiveZeroRecords = 0;
 int validDutyCount = 0;
-const float minFreqThreshold = 5;      // Minimum frequency 
-const float maxFreqThreshold = 17;      // Maximum frequency 
-const float minDutyThreshold = 47.5000; // Minimum duty cycle 
-const float maxDutyThreshold = 53.5000; // Maximum duty cycle 
+const float minFreqThreshold = 35;      // Minimum frequency threshold in Hz
+const float maxFreqThreshold = 52;      // Maximum frequency threshold in Hz
+const float minDutyThreshold = 49.00; // Minimum duty cycle threshold in percentage
+const float maxDutyThreshold = 51.00; // Maximum duty cycle threshold in percentage
 
 void setup() {
   Serial.begin(115200);  // Start serial communication
@@ -50,7 +50,7 @@ void loop() {
   Serial.println(" microseconds");
 
   // Increment pulse counter
-  if (onTime > 0 && offTime > 0) {
+  if (onTime > 0 && offTime > 0 && freq >= minFreqThreshold && freq <= maxFreqThreshold) {
     pulseCount++;
     consecutiveZeroRecords = 0;
   } else {
@@ -77,9 +77,10 @@ void loop() {
   } else {
     digitalWrite(ledFreqPin, LOW);   // Turn off the frequency LED if outside the desired range
   }
-  if(pulseCount > 0 && ( freq < minFreqThreshold || freq > maxFreqThreshold)){
+  /*if(pulseCount > 0 && ( freq < minFreqThreshold || freq > maxFreqThreshold)){
     pulseCount = 0;
-  }
+    validDutyCount = 0;
+  }*/
 
   // LED indication based on duty cycle
   if (freq >= minFreqThreshold && freq <= maxFreqThreshold && duty >= minDutyThreshold && duty <= maxDutyThreshold) {
@@ -89,15 +90,21 @@ void loop() {
     //digitalWrite(ledDutyPin, LOW);   // Turn off the duty cycle LED if outside the desired range
   }
 
-  if ((pulseCount) == 80) {
+  //Reseting the validDutyCount after Pulse Counter becomes zero due to any condition
+  if(pulseCount == 0){
+    validDutyCount = 0;
+  }
+
+  if ((pulseCount) == 90) {
     pulseCount = 0;
-    if ((validDutyCount / 80) >= 0.9) {
+    if(validDutyCount >= 80 ) {
       lcd.clear();
       lcd.print("OK");
       Serial.println("OK");
       digitalWrite(ledDutyPin, HIGH);  // Turn on the duty cycle LED for 5 seconds
       delay(5000);
-      digitalWrite(ledDutyPin, LOW);   // Turn off the duty cycle LED
+      digitalWrite(ledDutyPin, LOW);
+      // Turn off the duty cycle LED
       validDutyCount = 0;
     } else {
       lcd.clear();
@@ -106,10 +113,6 @@ void loop() {
       validDutyCount = 0;
       delay(5000);
     }
-  }
-  
-  if(pulseCount == 0){
-	validDutyCount = 0;
   }
 
   // Print frequency, duty cycle, and pulse durations
@@ -121,6 +124,8 @@ void loop() {
   Serial.print(onTime);
   Serial.print(" PulseIn (Falling): ");
   Serial.println(offTime);
+  Serial.println("Valid Duty Cycles: ");
+  Serial.println(validDutyCount);
 
   // Clear LCD only when frequency is above the threshold
   lcd.clear();
@@ -150,3 +155,4 @@ void loop() {
   lcd.print(duty, 2); // Print duty cycle on LCD with 2 decimal points
   lcd.print('%');
 }
+
